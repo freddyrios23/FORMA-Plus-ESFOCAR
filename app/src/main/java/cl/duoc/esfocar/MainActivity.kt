@@ -6,6 +6,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 
+
+// Importa la pantalla para administrar cuentas de profesores.
+import cl.duoc.esfocar.screens.AdminScreen
+
 // Elementos de diseño de Jetpack Compose.
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -67,6 +71,9 @@ import cl.duoc.esfocar.data.model.Usuario
 // Permite abrir y cerrar el menú lateral de forma asíncrona.
 import kotlinx.coroutines.launch
 
+// Permite ejecutar una tarea cuando se inicia la pantalla.
+import androidx.compose.runtime.LaunchedEffect
+
 // ----------------------------------------------------
 // 1. COLORES DE FORMA+
 // Centralizamos los colores para reutilizarlos.
@@ -78,12 +85,12 @@ private val FondoForma = Color(0xFFF6F7F3)
 
 // ----------------------------------------------------
 // 2. PANTALLAS DISPONIBLES
-// El enum identifica las secciones principales.
-// ----------------------------------------------------
+// Identifica las pantallas disponibles en la aplicación.
 private enum class Pantalla {
     Inicio,
     Estudio,
-    Cuestionario
+    Cuestionario,
+    AdminProfesores // Pantalla para registrar profesores.
 }
 
 // ----------------------------------------------------
@@ -133,6 +140,34 @@ fun FormaApp() {
         db.usuarioDAO()
     }
 
+
+// Indica si terminó la preparación inicial de la aplicación.
+    var inicializacionLista by remember {
+        mutableStateOf(false)
+    }
+
+// Comprueba si existe un administrador al iniciar ESFOCAR.
+    LaunchedEffect(usuarioDAO) {
+
+        // Si todavía no existe ningún administrador, crea la cuenta de prueba.
+        if (!usuarioDAO.existeAdministrador()) {
+
+            val administrador = Usuario(
+                nombre = "Administrador",
+                correo = "admin@gmail.com",
+                password = "1234",
+                rol = "ADMIN"
+            )
+
+            // Guarda la cuenta inicial en la base de datos.
+            usuarioDAO.insertar(administrador)
+        }
+
+        // Permite mostrar la pantalla de inicio de sesión.
+        inicializacionLista = true
+    }
+
+
     // -----------------------------------------------
     // 2. ESTADOS DE AUTENTICACIÓN
     // -----------------------------------------------
@@ -149,6 +184,12 @@ fun FormaApp() {
 
     // Nombre que se mostrará en el saludo del menú.
     var nombreUsuario by remember {
+        mutableStateOf("")
+    }
+
+    // Guarda el rol del usuario que inició sesión.
+    // Puede ser ESTUDIANTE o PROFESOR.
+    var rolUsuario by remember {
         mutableStateOf("")
     }
 
@@ -177,6 +218,19 @@ fun FormaApp() {
     // -----------------------------------------------
     // 4. MOSTRAR INICIO DE SESIÓN O REGISTRO
     // -----------------------------------------------
+
+    // Espera a que termine la preparación inicial.
+    if (!inicializacionLista) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text("Preparando ESFOCAR...")
+        }
+
+        return
+    }
 
     // Si no hay sesión, mostramos el formulario de autenticación.
     if (!sesionIniciada) {
@@ -207,6 +261,9 @@ fun FormaApp() {
 
                         // Guarda el nombre para mostrarlo en el menú.
                         nombreUsuario = usuario.nombre
+
+                        // Guarda el rol para mostrar las opciones correspondientes.
+                        rolUsuario = usuario.rol
 
                         // Permite acceder a las pantallas principales.
                         sesionIniciada = true
@@ -249,7 +306,9 @@ fun FormaApp() {
                         val nuevoUsuario = Usuario(
                             nombre = nombre,
                             correo = correo,
-                            password = clave
+                            password = clave,
+                            // El registro público siempre crea estudiantes.
+                            rol = "ESTUDIANTE"
                         )
 
                         // Guarda el usuario en la base de datos SQLite.
@@ -257,6 +316,9 @@ fun FormaApp() {
 
                         // Guarda el nombre para mostrarlo en el menú.
                         nombreUsuario = nombre
+
+                        // Guarda el rol de la cuenta recién creada.
+                        rolUsuario = nuevoUsuario.rol
 
                         // Inicia la sesión después del registro.
                         sesionIniciada = true
@@ -337,33 +399,57 @@ fun FormaApp() {
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // Acceso a los módulos de estudio.
-                    NavigationDrawerItem(
-                        label = { Text("Módulos de estudio") },
-                        selected = pantalla == Pantalla.Estudio,
-                        onClick = {
-                            pantalla = Pantalla.Estudio
+                    // Esta opción solo aparece cuando inició sesión un administrador.
+                    if (rolUsuario == "ADMIN") {
 
-                            alcance.launch {
-                                estadoMenu.close()
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        NavigationDrawerItem(
+                            label = {
+                                Text("Administrar profesores")
+                            },
+                            selected = pantalla == Pantalla.AdminProfesores,
+                            onClick = {
+                                // Abre la pantalla de administración.
+                                pantalla = Pantalla.AdminProfesores
 
-                    // Acceso a los cuestionarios.
-                    NavigationDrawerItem(
-                        label = { Text("Cuestionarios") },
-                        selected = pantalla == Pantalla.Cuestionario,
-                        onClick = {
-                            pantalla = Pantalla.Cuestionario
+                                // Cierra el menú lateral.
+                                alcance.launch {
+                                    estadoMenu.close()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
 
-                            alcance.launch {
-                                estadoMenu.close()
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    // Las opciones de estudio solo aparecen para estudiantes.
+                    if (rolUsuario == "ESTUDIANTE") {
+                        // Acceso a los módulos de estudio.
+                        NavigationDrawerItem(
+                            label = { Text("Módulos de estudio") },
+                            selected = pantalla == Pantalla.Estudio,
+                            onClick = {
+                                pantalla = Pantalla.Estudio
+
+                                alcance.launch {
+                                    estadoMenu.close()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        // Acceso a los cuestionarios.
+                        NavigationDrawerItem(
+                            label = { Text("Cuestionarios") },
+                            selected = pantalla == Pantalla.Cuestionario,
+                            onClick = {
+                                pantalla = Pantalla.Cuestionario
+
+                                alcance.launch {
+                                    estadoMenu.close()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
@@ -375,6 +461,7 @@ fun FormaApp() {
                             sesionIniciada = false
                             esRegistroAuth = false
                             nombreUsuario = ""
+                            rolUsuario = ""
                             errorAuth = null
 
                             // Cierra el menú lateral.
@@ -471,6 +558,27 @@ fun FormaApp() {
                             pantalla = Pantalla.Inicio
                         }
                     )
+
+                    // Pantalla para que el administrador registre profesores.
+                    Pantalla.AdminProfesores -> {
+
+                        // Verifica nuevamente el rol antes de mostrar la pantalla.
+                        if (rolUsuario == "ADMIN") {
+
+                            AdminScreen(
+                                usuarioDAO = usuarioDAO,
+                                onVolver = {
+                                    // Regresa a Inicio.
+                                    pantalla = Pantalla.Inicio
+                                }
+                            )
+
+                        } else {
+
+                            // Si no tiene permiso, no permite permanecer en esa pantalla.
+                            pantalla = Pantalla.Inicio
+                        }
+                    }
                 }
             }
         }
