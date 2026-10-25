@@ -1,4 +1,3 @@
-
 package cl.duoc.esfocar
 
 // Herramientas básicas de Android.
@@ -302,7 +301,7 @@ fun FormaApp() {
 
                     // Nombre de la aplicación.
                     Text(
-                        text = "FORMA+",
+                        text = "ESFOCAR",
                         color = DoradoForma,
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold
@@ -430,7 +429,7 @@ fun FormaApp() {
 
                     // Título de la barra superior.
                     Text(
-                        text = "FORMA+",
+                        text = "ESFOCAR",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = VerdeForma

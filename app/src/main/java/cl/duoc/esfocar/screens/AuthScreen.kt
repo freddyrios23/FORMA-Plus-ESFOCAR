@@ -1,4 +1,3 @@
-
 package cl.duoc.esfocar.screens
 
 // Elementos que organizan el contenido de la pantalla.
@@ -81,7 +80,7 @@ fun AuthScreen(
     ) {
         // Nombre y descripción de la aplicación.
         Text(
-            text = "FORMA+",
+            text = "ESFOCAR",
             color = DoradoAuth,
             fontSize = 36.sp,
             fontWeight = FontWeight.Bold
