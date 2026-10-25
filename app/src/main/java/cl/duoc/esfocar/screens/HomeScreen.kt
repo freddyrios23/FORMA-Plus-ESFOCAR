@@ -1,4 +1,3 @@
-
 package cl.duoc.esfocar.screens
 
 // IMPORTS: herramientas que necesitamos para construir la interfaz.
@@ -25,6 +24,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import cl.duoc.esfocar.R
 
 // COLORES: los guardamos en variables para reutilizarlos.
 // Así, si queremos cambiar el verde, lo hacemos en un solo lugar.
@@ -69,12 +71,14 @@ fun HomeScreen(
                 Column(
                     modifier = Modifier.padding(24.dp)
                 ) {
-                    // Nombre de nuestra aplicación.
-                    Text(
-                        text = "FORMA+",
-                        color = DoradoForma,
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.Bold
+                    // Nombre de nuestra aplicación y logo.
+                    Image(
+                        painter = painterResource(id = R.drawable.logo),
+                        contentDescription = "Logo de FORMA Plus",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Fit
                     )
 
                     // Agrega espacio vertical entre los textos.
