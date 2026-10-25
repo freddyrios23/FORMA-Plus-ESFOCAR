@@ -1,26 +1,24 @@
-
 package cl.duoc.esfocar.data
 
-// Importa las anotaciones necesarias para trabajar con Room.
+// Importaciones necesarias para trabajar con Room.
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 
-// Importa el modelo que representa a cada usuario.
+// Modelo que representa a cada usuario.
 import cl.duoc.esfocar.data.model.Usuario
 
-// Indica que esta interfaz contiene operaciones
-// para acceder a la tabla de usuarios.
+// Operaciones para acceder y administrar los usuarios.
 @Dao
 interface UsuarioDAO {
 
-    // Inserta un nuevo usuario en la tabla "usuarios".
-    // suspend permite ejecutar la operación desde una corrutina.
+    // Inserta un nuevo usuario.
     @Insert
     suspend fun insertar(usuario: Usuario)
 
-    // Busca un usuario cuyo correo y contraseña coincidan.
-    // Devuelve el usuario completo, incluido su rol, o null si no existe.
+    // Busca un usuario para iniciar sesión.
     @Query("""
         SELECT * FROM usuarios
         WHERE correo = :correo AND password = :password
@@ -32,7 +30,6 @@ interface UsuarioDAO {
     ): Usuario?
 
     // Busca una cuenta por su correo electrónico.
-    // Se utiliza para evitar registros con correos duplicados.
     @Query("""
         SELECT * FROM usuarios
         WHERE correo = :correo
@@ -40,9 +37,7 @@ interface UsuarioDAO {
     """)
     suspend fun buscarPorCorreo(correo: String): Usuario?
 
-    // Comprueba si ya existe una cuenta con el rol ADMIN.
-    // Devuelve true si existe al menos una cuenta de administrador.
-    // Esto permite evitar crear administradores iniciales duplicados.
+    // Comprueba si ya existe un administrador.
     @Query("""
         SELECT EXISTS(
             SELECT 1 FROM usuarios
@@ -50,4 +45,32 @@ interface UsuarioDAO {
         )
     """)
     suspend fun existeAdministrador(): Boolean
+
+    // Obtiene las cuentas de los profesores.
+    @Query("""
+        SELECT * FROM usuarios
+        WHERE rol = 'PROFESOR'
+        ORDER BY nombre ASC
+    """)
+    suspend fun obtenerProfesores(): List<Usuario>
+
+    // Actualiza los datos de un usuario existente.
+    @Update
+    suspend fun actualizar(usuario: Usuario)
+
+    // Elimina un usuario específico.
+    @Delete
+    suspend fun eliminar(usuario: Usuario)
+
+    // Comprueba si otro usuario ya utiliza ese correo.
+    @Query("""
+        SELECT EXISTS(
+            SELECT 1 FROM usuarios
+            WHERE correo = :correo AND id != :id
+        )
+    """)
+    suspend fun correoExisteEnOtroUsuario(
+        correo: String,
+        id: Int
+    ): Boolean
 }
