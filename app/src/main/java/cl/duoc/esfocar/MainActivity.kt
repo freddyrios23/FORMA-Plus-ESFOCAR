@@ -9,6 +9,11 @@ import androidx.activity.enableEdgeToEdge
 
 // Importa la pantalla para administrar cuentas de profesores.
 import cl.duoc.esfocar.screens.AdminScreen
+import cl.duoc.esfocar.screens.TeacherHomeScreen
+import cl.duoc.esfocar.screens.GestionModulosScreen
+import cl.duoc.esfocar.screens.CrearCuestionarioScreen
+import cl.duoc.esfocar.screens.ResultadosScreen
+import cl.duoc.esfocar.screens.ListaCuestionariosScreen
 
 // Elementos de diseño de Jetpack Compose.
 import androidx.compose.foundation.layout.Arrangement
@@ -60,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import cl.duoc.esfocar.screens.AuthScreen
 import cl.duoc.esfocar.screens.HomeScreen
 import cl.duoc.esfocar.ui.theme.EsfocarTheme
+import cl.duoc.esfocar.screens.ResponderCuestionarioScreen
 
 // Permite acceder al contexto de la aplicación Android.
 import androidx.compose.ui.platform.LocalContext
@@ -90,7 +96,12 @@ private enum class Pantalla {
     Inicio,
     Estudio,
     Cuestionario,
-    AdminProfesores // Pantalla para registrar profesores.
+    ResponderCuestionario,
+    AdminProfesores,
+    Profesor,
+    GestionModulos,
+    CrearCuestionario,
+    Resultados
 }
 
 // ----------------------------------------------------
@@ -205,6 +216,11 @@ fun FormaApp() {
     // Define qué sección de la aplicación está abierta.
     var pantalla by remember {
         mutableStateOf(Pantalla.Inicio)
+    }
+
+    // Guarda el ID del cuestionario seleccionado.
+    var cuestionarioSeleccionadoId by remember {
+        mutableStateOf<Int?>(null)
     }
 
     // Controla si el menú lateral está abierto o cerrado.
@@ -451,6 +467,23 @@ fun FormaApp() {
                         )
                     }
 
+                    // Opciones disponibles para el profesor.
+                    if (rolUsuario == "PROFESOR") {
+
+                        NavigationDrawerItem(
+                            label = { Text("Menú del profesor") },
+                            selected = pantalla == Pantalla.Profesor,
+                            onClick = {
+                                pantalla = Pantalla.Profesor
+
+                                alcance.launch {
+                                    estadoMenu.close()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Cierra la sesión y vuelve al inicio de sesión.
@@ -552,12 +585,38 @@ fun FormaApp() {
                         }
                     )
 
-                    // Pantalla de cuestionario.
-                    Pantalla.Cuestionario -> CuestionarioScreen(
+                    Pantalla.Cuestionario -> ListaCuestionariosScreen(
                         onVolver = {
                             pantalla = Pantalla.Inicio
+                        },
+                        onSeleccionarCuestionario = { cuestionarioId ->
+                            cuestionarioSeleccionadoId = cuestionarioId
+                            pantalla = Pantalla.ResponderCuestionario
                         }
                     )
+
+                    Pantalla.ResponderCuestionario -> {
+                        val id = cuestionarioSeleccionadoId
+
+                        if (id != null) {
+                            ResponderCuestionarioScreen(
+                                cuestionarioId = id,
+                                onVolver = {
+                                    pantalla = Pantalla.Cuestionario
+                                }
+                            )
+                        } else {
+                            ListaCuestionariosScreen(
+                                onVolver = {
+                                    pantalla = Pantalla.Inicio
+                                },
+                                onSeleccionarCuestionario = { cuestionarioId ->
+                                    cuestionarioSeleccionadoId = cuestionarioId
+                                    pantalla = Pantalla.ResponderCuestionario
+                                }
+                            )
+                        }
+                    }
 
                     // Pantalla para que el administrador registre profesores.
                     Pantalla.AdminProfesores -> {
@@ -579,6 +638,81 @@ fun FormaApp() {
                             pantalla = Pantalla.Inicio
                         }
                     }
+
+
+
+
+                        // Pantalla principal del profesor.
+                    Pantalla.Profesor -> {
+
+                        // Comprueba que el usuario tenga el rol de profesor.
+                        if (rolUsuario == "PROFESOR") {
+
+                            // Muestra el menú del profesor y conecta sus botones.
+                            TeacherHomeScreen(
+
+                                // Abre la pantalla para gestionar módulos.
+                                onModulos = {
+                                    pantalla = Pantalla.GestionModulos
+                                },
+
+                                // Abre la pantalla para crear cuestionarios.
+                                onCuestionarios = {
+                                    pantalla = Pantalla.CrearCuestionario
+                                },
+
+                                // Abre la pantalla de resultados.
+                                onResultados = {
+                                    pantalla = Pantalla.Resultados
+                                }
+                            )
+
+                        } else {
+
+                            // Si no es profesor, regresa a la pantalla de inicio.
+                            pantalla = Pantalla.Inicio
+                        }
+                    }
+
+                            // Pantalla para gestionar los módulos de estudio.
+                    Pantalla.GestionModulos -> {
+
+                        // Muestra los módulos y permite volver al menú del profesor.
+                        GestionModulosScreen(
+                            onVolver = {
+
+                                // Regresa al menú principal del profesor.
+                                pantalla = Pantalla.Profesor
+                            }
+                        )
+                    }
+
+                        // Pantalla para crear cuestionarios.
+                    Pantalla.CrearCuestionario -> {
+
+                        // Muestra el formulario para crear preguntas.
+                        CrearCuestionarioScreen(
+                            onVolver = {
+
+                                // Regresa al menú principal del profesor.
+                                pantalla = Pantalla.Profesor
+                            }
+                        )
+                    }
+
+                        // Pantalla para consultar los resultados.
+                    Pantalla.Resultados -> {
+
+                        // Muestra los resultados de ejemplo.
+                        ResultadosScreen(
+                            onVolver = {
+
+                                // Regresa al menú principal del profesor.
+                                pantalla = Pantalla.Profesor
+                            }
+                        )
+                    }
+
                 }
             }
         }

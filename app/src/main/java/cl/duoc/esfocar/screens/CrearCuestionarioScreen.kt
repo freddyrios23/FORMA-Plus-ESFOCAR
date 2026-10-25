@@ -15,9 +15,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+
+import cl.duoc.esfocar.data.local.DatabaseProvider
+import cl.duoc.esfocar.data.model.Cuestionario
+import cl.duoc.esfocar.data.model.Question
 
 // Colores de ESFOCAR
 private val Verde = Color(0xFF17452F)
@@ -56,10 +62,21 @@ fun CrearCuestionarioScreen(
         mutableStateOf(0)
     }
 
-    // Guarda las preguntas agregadas
+    // Guarda temporalmente las preguntas agregadas
     val preguntas = remember {
-        mutableStateListOf<String>()
+        mutableStateListOf<Question>()
     }
+
+    // Obtiene el contexto de la aplicación
+    val contexto = LocalContext.current
+
+    // Obtiene el DAO para guardar los cuestionarios
+    val cuestionarioDAO = remember {
+        DatabaseProvider.obtenerDatabase(contexto).cuestionarioDAO()
+    }
+
+    // Permite ejecutar las operaciones de base de datos
+    val scope = rememberCoroutineScope()
 
     // Mensaje para informar el resultado de una acción
     var mensaje by remember {
@@ -87,7 +104,9 @@ fun CrearCuestionarioScreen(
         OutlinedTextField(
             value = titulo,
             onValueChange = { titulo = it },
-            label = { Text("Título del cuestionario") },
+            label = {
+                Text("Título del cuestionario")
+            },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -104,7 +123,9 @@ fun CrearCuestionarioScreen(
         OutlinedTextField(
             value = pregunta,
             onValueChange = { pregunta = it },
-            label = { Text("Escribe la pregunta") },
+            label = {
+                Text("Escribe la pregunta")
+            },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -114,7 +135,9 @@ fun CrearCuestionarioScreen(
         OutlinedTextField(
             value = alternativa1,
             onValueChange = { alternativa1 = it },
-            label = { Text("Alternativa 1") },
+            label = {
+                Text("Alternativa 1")
+            },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -122,7 +145,9 @@ fun CrearCuestionarioScreen(
         OutlinedTextField(
             value = alternativa2,
             onValueChange = { alternativa2 = it },
-            label = { Text("Alternativa 2") },
+            label = {
+                Text("Alternativa 2")
+            },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -130,7 +155,9 @@ fun CrearCuestionarioScreen(
         OutlinedTextField(
             value = alternativa3,
             onValueChange = { alternativa3 = it },
-            label = { Text("Alternativa 3") },
+            label = {
+                Text("Alternativa 3")
+            },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -142,34 +169,37 @@ fun CrearCuestionarioScreen(
         )
 
         // Selección de la alternativa correcta
-        listOf(alternativa1, alternativa2, alternativa3)
-            .forEachIndexed { indice, alternativa ->
+        listOf(
+            alternativa1,
+            alternativa2,
+            alternativa3
+        ).forEachIndexed { indice, alternativa ->
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
 
-                    RadioButton(
-                        selected = respuestaCorrecta == indice + 1,
-                        onClick = {
-                            respuestaCorrecta = indice + 1
-                        }
-                    )
+                RadioButton(
+                    selected = respuestaCorrecta == indice + 1,
+                    onClick = {
+                        respuestaCorrecta = indice + 1
+                    }
+                )
 
-                    Text(
-                        text = if (alternativa.isBlank()) {
-                            "Alternativa ${indice + 1}"
-                        } else {
-                            alternativa
-                        }
-                    )
-                }
+                Text(
+                    text = if (alternativa.isBlank()) {
+                        "Alternativa ${indice + 1}"
+                    } else {
+                        alternativa
+                    }
+                )
             }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Agrega la pregunta a la lista
+        // Agrega la pregunta a la lista temporal
         Button(
             onClick = {
 
@@ -182,15 +212,20 @@ fun CrearCuestionarioScreen(
                     respuestaCorrecta != 0
                 ) {
 
-                    val textoPregunta =
-                        "$pregunta\n" +
-                                "1. $alternativa1\n" +
-                                "2. $alternativa2\n" +
-                                "3. $alternativa3\n" +
-                                "Respuesta correcta: $respuestaCorrecta"
+                    // Crea la pregunta temporal
+                    val nuevaPregunta = Question(
+                        cuestionarioId = 0,
+                        text = pregunta,
+                        alternativa1 = alternativa1,
+                        alternativa2 = alternativa2,
+                        alternativa3 = alternativa3,
+                        correctAnswerIndex = respuestaCorrecta
+                    )
 
-                    preguntas.add(textoPregunta)
+                    // Agrega la pregunta a la lista
+                    preguntas.add(nuevaPregunta)
 
+                    // Limpia los campos de la pregunta
                     pregunta = ""
                     alternativa1 = ""
                     alternativa2 = ""
@@ -200,7 +235,8 @@ fun CrearCuestionarioScreen(
                     mensaje = "Pregunta agregada correctamente."
 
                 } else {
-                    mensaje = "Completa todos los campos y selecciona la respuesta correcta."
+                    mensaje =
+                        "Completa todos los campos y selecciona la respuesta correcta."
                 }
             },
             modifier = Modifier.fillMaxWidth(),
@@ -230,8 +266,8 @@ fun CrearCuestionarioScreen(
             color = Verde
         )
 
-        // Muestra las preguntas guardadas en la lista
-        preguntas.forEachIndexed { indice, textoPregunta ->
+        // Muestra las preguntas agregadas
+        preguntas.forEachIndexed { indice, preguntaGuardada ->
 
             Card(
                 modifier = Modifier
@@ -241,14 +277,86 @@ fun CrearCuestionarioScreen(
                     containerColor = Color.White
                 )
             ) {
+
                 Text(
-                    text = "${indice + 1}. $textoPregunta",
+                    text = "${indice + 1}. ${preguntaGuardada.text}\n" +
+                            "1. ${preguntaGuardada.alternativa1}\n" +
+                            "2. ${preguntaGuardada.alternativa2}\n" +
+                            "3. ${preguntaGuardada.alternativa3}\n" +
+                            "Respuesta correcta: " +
+                            "${preguntaGuardada.correctAnswerIndex}",
                     modifier = Modifier.padding(12.dp)
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
+
+        // Guarda el cuestionario y sus preguntas en Room
+        Button(
+            onClick = {
+
+                if (titulo.isNotBlank() && preguntas.isNotEmpty()) {
+
+                    scope.launch {
+
+                        try {
+
+                            // Guarda el cuestionario y obtiene su ID
+                            val idCuestionario =
+                                cuestionarioDAO.insertarCuestionario(
+                                    Cuestionario(
+                                        titulo = titulo.trim()
+                                    )
+                                ).toInt()
+
+                            // Guarda las preguntas asociadas al cuestionario
+                            preguntas.forEach { preguntaGuardada ->
+
+                                cuestionarioDAO.insertarPregunta(
+                                    Question(
+                                        cuestionarioId = idCuestionario,
+                                        text = preguntaGuardada.text,
+                                        alternativa1 = preguntaGuardada.alternativa1,
+                                        alternativa2 = preguntaGuardada.alternativa2,
+                                        alternativa3 = preguntaGuardada.alternativa3,
+                                        correctAnswerIndex =
+                                            preguntaGuardada.correctAnswerIndex,
+                                        explanation =
+                                            preguntaGuardada.explanation
+                                    )
+                                )
+                            }
+
+                            // Limpia los campos después de guardar
+                            titulo = ""
+                            preguntas.clear()
+
+                            mensaje =
+                                "Cuestionario guardado correctamente."
+
+                        } catch (e: Exception) {
+
+                            mensaje =
+                                "No se pudo guardar el cuestionario."
+                        }
+                    }
+
+                } else {
+
+                    mensaje =
+                        "Escribe un título y agrega al menos una pregunta."
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Verde
+            )
+        ) {
+            Text("Guardar cuestionario")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Vuelve al menú del profesor
         Button(
@@ -262,5 +370,3 @@ fun CrearCuestionarioScreen(
         }
     }
 }
-
-
