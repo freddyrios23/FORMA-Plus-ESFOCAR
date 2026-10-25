@@ -1,25 +1,33 @@
+
 package cl.duoc.esfocar.data.model
 
-// Permite importar las herramientas de Room para trabajar con SQLite.
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-// Indica que esta clase se convertirá en una tabla llamada "usuarios".
+// Indica que esta clase se almacenará en una tabla
+// llamada "usuarios" dentro de la base de datos.
 @Entity(tableName = "usuarios")
 data class Usuario(
 
     // Identificador único de cada usuario.
-    // Room genera el ID automáticamente al guardar un registro.
+    // Room genera el número automáticamente al insertar un usuario.
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
 
-    // Nombre del usuario.
+    // Guarda el nombre del usuario.
     val nombre: String,
 
-    // Correo electrónico del usuario.
+    // Guarda el correo electrónico que utilizará para iniciar sesión.
     val correo: String,
 
-    // Contraseña del usuario.
-    // En una aplicación real no debe almacenarse en texto plano.
-    val password: String
+    // Guarda la contraseña del usuario.
+    // IMPORTANTE: actualmente se almacena como texto plano;
+    // posteriormente debemos implementar un almacenamiento seguro.
+    val password: String,
+
+    // Indica el tipo de usuario que tiene la cuenta.
+    // ESTUDIANTE: rol asignado por defecto al registrarse.
+    // PROFESOR: cuenta creada o autorizada por el administrador.
+    // ADMIN: cuenta con permisos para gestionar profesores.
+    val rol: String = "ESTUDIANTE"
 )
