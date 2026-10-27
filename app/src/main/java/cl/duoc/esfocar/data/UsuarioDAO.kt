@@ -1,25 +1,24 @@
-
 package cl.duoc.esfocar.data
 
-// Anotaciones para definir las consultas de Room.
+// Importaciones necesarias para trabajar con Room.
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 
-// Modelo de usuario almacenado en la base de datos.
+// Modelo que representa a cada usuario.
 import cl.duoc.esfocar.data.model.Usuario
 
-// Operaciones disponibles para administrar usuarios.
+// Operaciones para acceder y administrar los usuarios.
 @Dao
 interface UsuarioDAO {
 
-    // Crea una cuenta nueva.
+    // Inserta un nuevo usuario.
     @Insert
     suspend fun insertar(usuario: Usuario)
 
-    // Busca una cuenta para iniciar sesión.
+    // Busca un usuario para iniciar sesión.
     @Query("""
         SELECT * FROM usuarios
         WHERE correo = :correo AND password = :password
@@ -30,7 +29,7 @@ interface UsuarioDAO {
         password: String
     ): Usuario?
 
-    // Busca una cuenta por su correo.
+    // Busca una cuenta por su correo electrónico.
     @Query("""
         SELECT * FROM usuarios
         WHERE correo = :correo
@@ -47,7 +46,7 @@ interface UsuarioDAO {
     """)
     suspend fun existeAdministrador(): Boolean
 
-    // Obtiene solamente las cuentas de profesores.
+    // Obtiene las cuentas de los profesores.
     @Query("""
         SELECT * FROM usuarios
         WHERE rol = 'PROFESOR'
@@ -64,7 +63,6 @@ interface UsuarioDAO {
     suspend fun eliminar(usuario: Usuario)
 
     // Comprueba si otro usuario ya utiliza ese correo.
-    // Excluye el ID del profesor que se está editando.
     @Query("""
         SELECT EXISTS(
             SELECT 1 FROM usuarios

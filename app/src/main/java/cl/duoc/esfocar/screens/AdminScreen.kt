@@ -1,4 +1,3 @@
-
 package cl.duoc.esfocar.screens
 
 // Componentes para organizar la pantalla.
@@ -13,7 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 
-// Componentes visuales de Material Design.
+// Componentes visuales.
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -24,7 +23,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 
-// Estados y efectos de Jetpack Compose.
+// Estados de Jetpack Compose.
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,14 +36,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-// Acceso a la base de datos y al modelo.
+// Base de datos y modelo de usuario.
 import cl.duoc.esfocar.data.UsuarioDAO
 import cl.duoc.esfocar.data.model.Usuario
 
-// Ejecuta operaciones sin bloquear la interfaz.
+// Permite ejecutar operaciones sin bloquear la interfaz.
 import kotlinx.coroutines.launch
 
-// Pantalla CRUD para administrar profesores.
+// Pantalla para administrar profesores.
 @Composable
 fun AdminScreen(
     usuarioDAO: UsuarioDAO,
@@ -56,40 +55,39 @@ fun AdminScreen(
     var clave by remember { mutableStateOf("") }
 
     // Profesor que se está editando.
-    // Si es null, el formulario crea una cuenta nueva.
     var profesorEditando by remember {
         mutableStateOf<Usuario?>(null)
     }
 
-    // Lista de profesores cargada desde Room.
+    // Lista de profesores obtenida de la base de datos.
     var profesores by remember {
         mutableStateOf<List<Usuario>>(emptyList())
     }
 
-    // Mensajes de confirmación o error.
+    // Mensaje de confirmación o error.
     var mensaje by remember { mutableStateOf("") }
 
-    // Controla el diálogo de confirmación de eliminación.
+    // Profesor que se quiere eliminar.
     var profesorEliminar by remember {
         mutableStateOf<Usuario?>(null)
     }
 
-    // Permite ejecutar consultas de manera asíncrona.
+    // Permite ejecutar operaciones de base de datos.
     val alcance = rememberCoroutineScope()
 
-    // Carga la lista de profesores desde la base de datos.
+    // Carga la lista de profesores.
     fun cargarProfesores() {
         alcance.launch {
             profesores = usuarioDAO.obtenerProfesores()
         }
     }
 
-    // Carga los profesores cuando se abre la pantalla.
+    // Carga los profesores al abrir la pantalla.
     LaunchedEffect(usuarioDAO) {
-        profesores = usuarioDAO.obtenerProfesores()
+        cargarProfesores()
     }
 
-    // Limpia el formulario y sale del modo edición.
+    // Limpia el formulario y cancela la edición.
     fun limpiarFormulario() {
         nombre = ""
         correo = ""
@@ -98,7 +96,7 @@ fun AdminScreen(
         mensaje = ""
     }
 
-    // Diálogo para confirmar antes de borrar una cuenta.
+    // Diálogo para confirmar la eliminación.
     if (profesorEliminar != null) {
         AlertDialog(
             onDismissRequest = {
@@ -116,26 +114,18 @@ fun AdminScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        // Guarda el profesor seleccionado.
                         val seleccionado = profesorEliminar
-
-                        // Cierra el diálogo.
                         profesorEliminar = null
 
-                        // Elimina solamente la cuenta seleccionada.
                         if (seleccionado != null) {
                             alcance.launch {
                                 usuarioDAO.eliminar(seleccionado)
 
-                                // Actualiza la lista después de eliminar.
-                                profesores = usuarioDAO.obtenerProfesores()
+                                // Actualiza la lista.
+                                cargarProfesores()
 
-                                // Si se estaba editando esa cuenta,
-                                // limpia el formulario.
-                                if (
-                                    profesorEditando?.id ==
-                                    seleccionado.id
-                                ) {
+                                // Limpia el formulario si se editaba esa cuenta.
+                                if (profesorEditando?.id == seleccionado.id) {
                                     limpiarFormulario()
                                 }
 
@@ -159,7 +149,7 @@ fun AdminScreen(
         )
     }
 
-    // Contenido principal desplazable.
+    // Contenido principal de la pantalla.
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -167,7 +157,6 @@ fun AdminScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Título de la pantalla.
         Text(
             text = "Administrar profesores",
             style = MaterialTheme.typography.headlineSmall
@@ -177,7 +166,7 @@ fun AdminScreen(
             text = "Registra, consulta, edita o elimina cuentas de profesores."
         )
 
-        // Cambia el título según la operación seleccionada.
+        // El título cambia según la operación.
         Text(
             text = if (profesorEditando == null) {
                 "Registrar nuevo profesor"
@@ -187,7 +176,7 @@ fun AdminScreen(
             style = MaterialTheme.typography.titleMedium
         )
 
-        // Campo para el nombre.
+        // Campo del nombre.
         OutlinedTextField(
             value = nombre,
             onValueChange = { nombre = it },
@@ -196,7 +185,7 @@ fun AdminScreen(
             singleLine = true
         )
 
-        // Campo para el correo.
+        // Campo del correo.
         OutlinedTextField(
             value = correo,
             onValueChange = { correo = it },
@@ -205,8 +194,7 @@ fun AdminScreen(
             singleLine = true
         )
 
-        // En edición, la contraseña puede dejarse vacía
-        // para conservar la contraseña que ya tenía la cuenta.
+        // En edición, la contraseña es opcional.
         OutlinedTextField(
             value = clave,
             onValueChange = { clave = it },
@@ -223,15 +211,14 @@ fun AdminScreen(
             singleLine = true
         )
 
-        // Guarda una cuenta nueva o actualiza la existente.
+        // Registra un profesor o guarda sus cambios.
         Button(
             onClick = {
-                // Normaliza los datos escritos.
                 val nombreLimpio = nombre.trim()
                 val correoLimpio = correo.trim()
                 val profesorActual = profesorEditando
 
-                // Valida los campos obligatorios.
+                // Comprueba los campos obligatorios.
                 if (
                     nombreLimpio.isBlank() ||
                     correoLimpio.isBlank()
@@ -245,12 +232,10 @@ fun AdminScreen(
                 } else if (
                     profesorActual == null && clave.isBlank()
                 ) {
-                    // Para crear una cuenta, la contraseña es obligatoria.
                     mensaje = "Ingresa una contraseña."
                 } else {
-                    // Ejecuta las consultas y cambios en Room.
                     alcance.launch {
-                        // Impide usar un correo de otra cuenta.
+                        // Comprueba si el correo pertenece a otra cuenta.
                         val correoDuplicado =
                             if (profesorActual == null) {
                                 usuarioDAO.buscarPorCorreo(correoLimpio) != null
@@ -265,7 +250,7 @@ fun AdminScreen(
                             mensaje = "Ese correo ya está registrado."
                         } else {
                             if (profesorActual == null) {
-                                // CREATE: crea un profesor nuevo.
+                                // CREATE: crea un nuevo profesor.
                                 val nuevoProfesor = Usuario(
                                     nombre = nombreLimpio,
                                     correo = correoLimpio,
@@ -277,9 +262,7 @@ fun AdminScreen(
 
                                 mensaje = "Profesor registrado correctamente."
                             } else {
-                                // UPDATE: conserva el ID y el rol.
-                                // Si la contraseña queda vacía,
-                                // mantiene la contraseña anterior.
+                                // UPDATE: modifica el profesor existente.
                                 val profesorActualizado = profesorActual.copy(
                                     nombre = nombreLimpio,
                                     correo = correoLimpio,
@@ -295,10 +278,8 @@ fun AdminScreen(
                                 mensaje = "Profesor actualizado correctamente."
                             }
 
-                            // Recarga la lista con los datos actuales.
-                            profesores = usuarioDAO.obtenerProfesores()
-
-                            // Limpia el formulario tras guardar.
+                            // Actualiza la lista y limpia el formulario.
+                            cargarProfesores()
                             limpiarFormulario()
                         }
                     }
@@ -315,7 +296,7 @@ fun AdminScreen(
             )
         }
 
-        // Permite cancelar una edición.
+        // Permite cancelar la edición.
         if (profesorEditando != null) {
             OutlinedButton(
                 onClick = {
@@ -327,14 +308,14 @@ fun AdminScreen(
             }
         }
 
-        // Informa el resultado de las operaciones.
+        // Muestra los mensajes.
         if (mensaje.isNotBlank()) {
             Text(text = mensaje)
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // READ: lista de profesores registrados.
+        // Lista de profesores registrados.
         Text(
             text = "Profesores registrados (${profesores.size})",
             style = MaterialTheme.typography.titleMedium
@@ -344,7 +325,7 @@ fun AdminScreen(
             Text("Todavía no hay profesores registrados.")
         }
 
-        // Crea una tarjeta por cada profesor.
+        // Muestra una tarjeta por cada profesor.
         profesores.forEach { profesor ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -358,7 +339,6 @@ fun AdminScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // Muestra los datos de la cuenta.
                     Text(
                         text = profesor.nombre,
                         style = MaterialTheme.typography.titleMedium
@@ -367,7 +347,7 @@ fun AdminScreen(
                     Text(text = profesor.correo)
                     Text(text = "Rol: ${profesor.rol}")
 
-                    // Acciones para editar o eliminar la cuenta.
+                    // Botones para editar y eliminar.
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -378,8 +358,6 @@ fun AdminScreen(
                                 profesorEditando = profesor
                                 nombre = profesor.nombre
                                 correo = profesor.correo
-
-                                // No mostramos la contraseña actual.
                                 clave = ""
                                 mensaje = ""
                             },
@@ -390,7 +368,6 @@ fun AdminScreen(
 
                         OutlinedButton(
                             onClick = {
-                                // Solicita confirmación antes de eliminar.
                                 profesorEliminar = profesor
                             },
                             modifier = Modifier.weight(1f)
@@ -404,7 +381,7 @@ fun AdminScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Regresa a la pantalla principal.
+        // Regresa a la pantalla anterior.
         OutlinedButton(
             onClick = onVolver,
             modifier = Modifier.fillMaxWidth()

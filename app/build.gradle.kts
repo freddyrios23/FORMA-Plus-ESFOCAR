@@ -62,6 +62,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
 
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     // Room: persistencia local mediante SQLite.
     implementation(libs.androidx.room.runtime)
 
