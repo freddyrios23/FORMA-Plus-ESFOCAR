@@ -1,17 +1,18 @@
-
 package cl.duoc.esfocar.screens
 
-// Importaciones para las animaciones.
+import android.net.Uri
+import android.provider.OpenableColumns
+
+// Animaciones de Compose.
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateIntOffsetAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 
-// Importaciones para el diseño.
+// Componentes visuales.
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -29,20 +30,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// Importaciones para seleccionar archivos del teléfono.
-import android.net.Uri
-import android.provider.OpenableColumns
+// Selector nativo de documentos de Android.
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.platform.LocalContext
 
-// Colores principales de ESFOCAR.
+// Colores institucionales de ESFOCAR.
 private val Verde = Color(0xFF17452F)
 private val Dorado = Color(0xFFC6A34A)
 private val Fondo = Color(0xFFF6F7F3)
@@ -53,7 +50,7 @@ fun TeacherHomeScreen(
     onCuestionarios: () -> Unit = {},
     onResultados: () -> Unit = {}
 ) {
-    // Permite desplazarse por la pantalla cuando el contenido no cabe.
+    // Permite desplazarse por la pantalla si el contenido es largo.
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -62,7 +59,7 @@ fun TeacherHomeScreen(
             .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Encabezado de la pantalla del profesor.
+        // Encabezado institucional.
         Text(
             text = "ESFOCAR",
             fontSize = 30.sp,
@@ -70,17 +67,18 @@ fun TeacherHomeScreen(
             color = Verde
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         Text(
             text = "Menú del profesor",
             fontSize = 22.sp,
+            fontWeight = FontWeight.Medium,
             color = Verde
         )
 
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(25.dp))
 
-        // Tarjeta para administrar los módulos.
+        // Acceso a la gestión de módulos.
         TarjetaProfesor(
             titulo = "Gestionar módulos",
             descripcion = "Crear y administrar módulos de estudio",
@@ -89,7 +87,7 @@ fun TeacherHomeScreen(
 
         Spacer(modifier = Modifier.height(15.dp))
 
-        // Tarjeta para crear cuestionarios.
+        // Acceso a la creación de cuestionarios.
         TarjetaProfesor(
             titulo = "Crear cuestionarios",
             descripcion = "Agregar preguntas y alternativas",
@@ -98,7 +96,7 @@ fun TeacherHomeScreen(
 
         Spacer(modifier = Modifier.height(15.dp))
 
-        // Tarjeta para consultar los resultados.
+        // Acceso a los resultados de los estudiantes.
         TarjetaProfesor(
             titulo = "Ver resultados",
             descripcion = "Revisar los puntajes de los estudiantes",
@@ -107,50 +105,48 @@ fun TeacherHomeScreen(
 
         Spacer(modifier = Modifier.height(25.dp))
 
-        // Nueva sección para seleccionar material de estudio.
+        // Sección funcional para seleccionar material de estudio.
         SeccionArchivos()
 
-        Spacer(modifier = Modifier.height(30.dp))
-
-        // Ejemplo de animación de desplazamiento.
-        EjemploDesplazamiento()
-
-        Spacer(modifier = Modifier.height(25.dp))
-
-        // Ejemplos de expansión, contracción y desvanecimiento.
-        EjemploExpansion()
-
         Spacer(modifier = Modifier.height(20.dp))
+
+        // Ayuda desplegable para el profesor.
+        SeccionAyuda()
     }
 }
 
-// Tarjeta reutilizable que cambia suavemente de color.
+// Tarjeta reutilizable con animación de color.
 @Composable
 private fun TarjetaProfesor(
     titulo: String,
     descripcion: String,
     alPulsar: () -> Unit
 ) {
-    // Guarda si la tarjeta está seleccionada.
-    var seleccionada by remember { mutableStateOf(false) }
+    // Recuerda si el usuario ha seleccionado esta tarjeta.
+    var seleccionada by remember {
+        mutableStateOf(false)
+    }
 
-    // Anima el cambio entre blanco y dorado.
+    // Cambia gradualmente entre blanco y dorado.
     val colorTarjeta by animateColorAsState(
         targetValue = if (seleccionada) Dorado else Color.White,
-        animationSpec = tween(durationMillis = 600),
-        label = "Color de la tarjeta"
+        animationSpec = tween(durationMillis = 350),
+        label = "Animación de color"
     )
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                // Cambia el color y ejecuta la acción de la tarjeta.
+                // Activa el efecto visual y ejecuta la navegación original.
                 seleccionada = !seleccionada
                 alPulsar()
             },
         colors = CardDefaults.cardColors(
             containerColor = colorTarjeta
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 3.dp
         )
     ) {
         Column(
@@ -173,34 +169,30 @@ private fun TarjetaProfesor(
     }
 }
 
-// Sección para seleccionar archivos PDF y Word.
+// Sección que permite seleccionar un PDF o un documento Word.
 @Composable
 private fun SeccionArchivos() {
-    // Contexto necesario para consultar el nombre del archivo.
     val contexto = LocalContext.current
 
-    // Guarda la dirección del documento seleccionado.
+    // Guarda la referencia del archivo seleccionado.
     var archivoSeleccionado by remember {
         mutableStateOf<Uri?>(null)
     }
 
-    // Abre el selector de documentos nativo del teléfono.
-    // El usuario puede elegir PDF o documentos Word.
+    // Abre el selector de documentos propio de Android.
     val selectorDocumentos = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
-        // Si el usuario selecciona un documento, guardamos su Uri.
-        // Si cancela, no modificamos el archivo anterior.
+        // Solo actualiza el estado si se seleccionó un archivo.
         if (uri != null) {
             archivoSeleccionado = uri
         }
     }
 
-    // Obtiene el nombre visible del archivo seleccionado.
+    // Consulta el nombre visible del documento seleccionado.
     val nombreArchivo = archivoSeleccionado?.let { uri ->
         var nombre: String? = null
 
-        // Consulta los metadatos del documento.
         contexto.contentResolver.query(
             uri,
             arrayOf(OpenableColumns.DISPLAY_NAME),
@@ -219,15 +211,16 @@ private fun SeccionArchivos() {
             }
         }
 
-        // Si no se pudo obtener el nombre, muestra el último segmento.
         nombre ?: uri.lastPathSegment ?: "Documento seleccionado"
     }
 
-    // Tarjeta visual de la sección de archivos.
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
         )
     ) {
         Column(
@@ -244,15 +237,15 @@ private fun SeccionArchivos() {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Selecciona un documento PDF o Word.",
+                text = "Selecciona documentos para tu material de apoyo.",
                 color = Verde
             )
 
             Spacer(modifier = Modifier.height(15.dp))
 
-            // Al pulsar, se abre el selector de archivos del sistema.
             Button(
                 onClick = {
+                    // Filtra los tipos de documentos que puede elegir.
                     selectorDocumentos.launch(
                         arrayOf(
                             "application/pdf",
@@ -267,15 +260,15 @@ private fun SeccionArchivos() {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Muestra el nombre si ya se seleccionó un documento.
             if (nombreArchivo != null) {
+                // Informa al profesor cuál fue el documento elegido.
                 Text(
-                    text = "Archivo seleccionado:",
+                    text = "Documento seleccionado",
                     fontWeight = FontWeight.Bold,
                     color = Verde
                 )
 
-                Spacer(modifier = Modifier.height(5.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
                     text = nombreArchivo,
@@ -283,7 +276,7 @@ private fun SeccionArchivos() {
                 )
             } else {
                 Text(
-                    text = "Todavía no has seleccionado un archivo.",
+                    text = "Ningún documento seleccionado",
                     color = Color.Gray
                 )
             }
@@ -291,67 +284,12 @@ private fun SeccionArchivos() {
     }
 }
 
-// Ejemplo de desplazamiento usando animateIntOffsetAsState.
+// Ayuda útil en lugar de los ejemplos de animación.
 @Composable
-private fun EjemploDesplazamiento() {
-    var movido by remember { mutableStateOf(false) }
-
-    // Convierte 80 dp a píxeles porque IntOffset trabaja con píxeles.
-    val distancia = with(LocalDensity.current) {
-        80.dp.roundToPx()
+private fun SeccionAyuda() {
+    var mostrarAyuda by remember {
+        mutableStateOf(false)
     }
-
-    // Calcula la posición animada del cuadro.
-    val desplazamiento by animateIntOffsetAsState(
-        targetValue = if (movido) {
-            IntOffset(x = distancia, y = 0)
-        } else {
-            IntOffset.Zero
-        },
-        animationSpec = tween(durationMillis = 600),
-        label = "Desplazamiento del cuadro"
-    )
-
-    Text(
-        text = "Ejemplo de desplazamiento",
-        fontSize = 18.sp,
-        fontWeight = FontWeight.Bold,
-        color = Verde
-    )
-
-    Spacer(modifier = Modifier.height(10.dp))
-
-    Button(
-        onClick = {
-            // Alterna entre la posición inicial y la desplazada.
-            movido = !movido
-        }
-    ) {
-        Text(
-            text = if (movido) "Volver al inicio" else "Mover cuadro"
-        )
-    }
-
-    // Área donde aparece el cuadro animado.
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp),
-        contentAlignment = Alignment.CenterStart
-    ) {
-        Box(
-            modifier = Modifier
-                .offset { desplazamiento }
-                .size(60.dp)
-                .background(Verde)
-        )
-    }
-}
-
-// Ejemplo de expansión y contracción vertical.
-@Composable
-private fun EjemploExpansion() {
-    var expandida by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -369,84 +307,47 @@ private fun EjemploExpansion() {
                 color = Verde
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Button(
                 onClick = {
-                    // Cambia el estado para mostrar u ocultar la ayuda.
-                    expandida = !expandida
+                    // Alterna entre mostrar y ocultar las instrucciones.
+                    mostrarAyuda = !mostrarAyuda
                 }
             ) {
                 Text(
-                    text = if (expandida) "Ver menos" else "Ver más"
+                    text = if (mostrarAyuda) {
+                        "Ocultar instrucciones"
+                    } else {
+                        "Ver instrucciones"
+                    }
                 )
             }
 
-            // El contenido se expande y contrae verticalmente.
+            // Expande el contenido y lo oculta con una transición suave.
             AnimatedVisibility(
-                visible = expandida,
+                visible = mostrarAyuda,
                 enter = expandVertically(
-                    animationSpec = tween(durationMillis = 600),
+                    animationSpec = tween(350),
                     expandFrom = Alignment.Top
-                ),
+                ) + fadeIn(animationSpec = tween(350)),
                 exit = shrinkVertically(
-                    animationSpec = tween(durationMillis = 600),
+                    animationSpec = tween(350),
                     shrinkTowards = Alignment.Top
-                )
+                ) + fadeOut(animationSpec = tween(250))
             ) {
-                Text(
-                    text = "Desde esta pantalla puedes gestionar los " +
-                            "módulos de estudio, crear cuestionarios y " +
-                            "consultar los resultados de los estudiantes.",
-                    color = Verde,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                Column(
+                    modifier = Modifier.padding(top = 10.dp)
+                ) {
+                    Text(
+                        text = "• Gestiona los módulos de estudio.\n" +
+                                "• Crea cuestionarios para los estudiantes.\n" +
+                                "• Consulta los resultados obtenidos.\n" +
+                                "• Selecciona material de apoyo en PDF o Word.",
+                        color = Verde
+                    )
+                }
             }
         }
-    }
-
-    Spacer(modifier = Modifier.height(20.dp))
-
-    // Ejemplo de mostrar y ocultar mediante desvanecimiento.
-    EjemploMostrarOcultar()
-}
-
-// Ejemplo de AnimatedVisibility con fadeIn y fadeOut.
-@Composable
-private fun EjemploMostrarOcultar() {
-    var mostrar by remember { mutableStateOf(false) }
-
-    Text(
-        text = "Ejemplo de mostrar y ocultar",
-        fontSize = 18.sp,
-        fontWeight = FontWeight.Bold,
-        color = Verde
-    )
-
-    Spacer(modifier = Modifier.height(10.dp))
-
-    Button(
-        onClick = {
-            // Alterna la visibilidad del mensaje.
-            mostrar = !mostrar
-        }
-    ) {
-        Text(
-            text = if (mostrar) "Ocultar ayuda" else "Mostrar ayuda"
-        )
-    }
-
-    // El mensaje aparece y desaparece suavemente.
-    AnimatedVisibility(
-        visible = mostrar,
-        enter = fadeIn(),
-        exit = fadeOut()
-    ) {
-        Text(
-            text = "Recuerda revisar los módulos y cuestionarios " +
-                    "antes de finalizar tu trabajo.",
-            color = Verde,
-            modifier = Modifier.padding(12.dp)
-        )
     }
 }
