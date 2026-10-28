@@ -12,16 +12,20 @@ import cl.duoc.esfocar.data.model.Modulo
 import cl.duoc.esfocar.data.CuestionarioDAO
 import cl.duoc.esfocar.data.model.Cuestionario
 import cl.duoc.esfocar.data.model.Question
+import cl.duoc.esfocar.data.model.ResultadoCuestionario
+import cl.duoc.esfocar.data.ResultadoDAO
 
 @Database(
     entities = [
         Usuario::class,
         Modulo::class,
         Cuestionario::class,
-        Question::class
+        Question::class,
+        ResultadoCuestionario::class
     ],
-    version = 4
+    version = 5
 )
+
 abstract class AppDatabase : RoomDatabase() {
 
     // Acceso a las operaciones de usuarios.
@@ -32,6 +36,9 @@ abstract class AppDatabase : RoomDatabase() {
 
     // Permite acceder a las operaciones de cuestionarios y preguntas.
     abstract fun cuestionarioDAO(): CuestionarioDAO
+
+    // Permite acceder a los resultados de los alumnos.
+    abstract fun resultadoDAO(): ResultadoDAO
 
     companion object {
 
@@ -95,5 +102,30 @@ abstract class AppDatabase : RoomDatabase() {
                 )
             }
         }
+
+        // Migración de la versión 4 a la 5.
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+            CREATE TABLE IF NOT EXISTS `resultados_cuestionarios` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `nombreAlumno` TEXT NOT NULL,
+                `correoAlumno` TEXT NOT NULL,
+                `cuestionarioId` INTEGER NOT NULL,
+                `tituloCuestionario` TEXT NOT NULL,
+                `respuestasCorrectas` INTEGER NOT NULL,
+                `totalPreguntas` INTEGER NOT NULL,
+                `porcentaje` INTEGER NOT NULL,
+                `fecha` INTEGER NOT NULL
+            )
+            """
+                )
+            }
+        }
+
+
+
     }
 }
